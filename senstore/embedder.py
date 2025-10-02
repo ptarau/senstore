@@ -138,7 +138,7 @@ class SentEmbedder:
         res = [(self.sents[i], (int(i), float(r), self.ranks[i])) for i, r in hits]
         return res
 
-    def query_orbit(self, query: str):
+    def query_orbit(self, query: str) -> np.ndarray:
         """Query the vector store for all matches to the query."""
         assert self.sents is not None, "Sentences are not initialized."
         res = self.hits(query, len(self.sents))
@@ -207,7 +207,7 @@ class SentEmbedder:
                 self.ranks[i] = float(r)
         print(f"Sentences {self.sentfile_name} loaded.")
 
-    def all_computed(self):
+    def all_computed(self) -> tuple[list[str], np.ndarray, list[float]]:
         """Get the sentences, their embeddings, and their ranks."""
         assert self.sents is not None, "Sentences are not initialized."
         assert self.vecstore is not None, "Vector store is not initialized."
