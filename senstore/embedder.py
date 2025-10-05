@@ -52,14 +52,18 @@ class SentEmbedder:
             and self.dim < 0
         )
 
-    def digest_text(self, text: str):
-        """Digest a text string, segment it into sentences, embed them, and store them in the vector store."""
+    def digest_sents(self, sents: list[str]):
+        """Digest a list of sentences, embed them, and store them in the vector store."""
         assert self.is_cleared(), "Embedder is already initialized."
-        self.sents = self.text2sents(text)
+        self.sents = sents
         embeddings, dim = self.get_embeddings(self.sents)
         self.dim = dim
         self.store_embeddings(embeddings, dim)
         self.ranks = self.get_ranks()
+
+    def digest_text(self, text: str):
+        """Digest a text string, segment it into sentences, embed them, and store them in the vector store."""
+        self.digest_sents(self.text2sents(text))
 
     def digest_file(self, fname: str):
         """Digest a text file, segment it into sentences, embed them, and store them in the vector store."""
@@ -71,6 +75,29 @@ class SentEmbedder:
         with open(fname, "r") as f:
             text = f.read()
         self.digest_text(text)
+        if self.caching:
+            self.save()
+
+    def digest_folder(self, folder_name: str):
+        """Digest files in a folder, segment them into sentences, embed them, and store them in a shared vector store."""
+
+        if self.caching and os.path.exists(self.vecstore_name):
+            print(f"Loading cached vecstore {self.vecstore_name}")
+            self.load()
+            return
+
+        sents = []
+        for root, _, files in os.walk(folder_name):
+            for file in files:
+                if file.lower().endswith(".txt"):
+                    fname = os.path.join(root, file)
+                    print(f"Digesting file: {fname}")
+                    with open(fname, "r") as f:
+                        text = f.read()
+                    new_sents = self.segmenter.text2sents(text)
+                    sents.extend(new_sents)
+                    print(f"Finished digesting file: {fname}")
+        self.digest_sents(sents)
         if self.caching:
             self.save()
 
@@ -186,7 +213,9 @@ class SentEmbedder:
     def load(self):
         """Load the vector store from disk."""
         assert self.vecstore is None, "Vector store is already initialized."
-        assert os.path.exists(self.vecstore_name), "Vector store file does not exist."
+        assert os.path.exists(
+            self.vecstore_name
+        ), f"Vector store file {self.vecstore_name} does not exist."
         assert os.path.exists(self.dimfile_name), "Dimension    file does not exist."
         with open(self.dimfile_name, "r") as f:
             self.dim = int(f.readline().strip())

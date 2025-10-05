@@ -3,14 +3,48 @@ import os
 import pysbd
 
 
+def sent_cleaner(sents, minlen=16):
+    cleans = []
+    good = "'~:;=/*()[]{},.?!-+" + '"'
+    keep = "$%"
+
+    for s in sents:
+        s = s.strip()
+        if len(s) < minlen:
+            continue
+        cap = int(is_capitalized(s))
+        for g in good:
+            s = s.replace(g, " ")
+        for g in keep:
+            s = s.replace(g, " " + g + " ")
+        xs = s.split()
+        raw = len(xs)
+
+        xs = [x.strip() for x in xs if x.isalnum() or x in keep]
+        cleaned = len(xs)
+
+        if cleaned > 5 - cap and cleaned / raw > 0.8 - cap / 10:  # and len(xs[-1]) > 3:
+            clean = " ".join(xs)
+            cleans.append(clean + ".")
+    if not cleans:
+        print("*** NO CLEAN SENT FOUND IN:", sents)
+    return cleans
+
+
+def is_capitalized(s):
+    return s and s[0] == s[0].capitalize()
+
+
 class Segmenter:
     """Segment text into sentences using pysbd."""
 
-    def __init__(self, lang="en", max_chunk_size=10000):
+    def __init__(self, lang="en", max_chunk_size=10000, clean=True, minlen=16):
         # approx 10 pages max chunk
         self.lang = lang
+        self.clean = clean
+        self.minlen = minlen
         self.max_chunk_size = max_chunk_size
-        self.nlp = pysbd.Segmenter(language=lang, clean=False)
+        self.nlp = pysbd.Segmenter(language=lang, clean=clean)
         self.times = 0
 
     def chunkify(self, text: str) -> list[str]:
@@ -44,7 +78,9 @@ class Segmenter:
         assert self.nlp is not None
         assert text, "No text to segment"
         xss = self.preprocess(text)
-        sents = [x.strip() for xs in xss for x in xs if x]
+        sents = [x for xs in xss for x in xs if x]
+        if self.clean:
+            sents = sent_cleaner(sents, minlen=self.minlen)
         t2 = time()
         self.times += t2 - t1
         assert sents, f"No good sentences after segmenting text of len={len(text)}"
@@ -65,6 +101,5 @@ def segment_text(text: str) -> list[str]:
 
 
 def segment_file(fname: str) -> list[str]:
-    seg = Segmenter()
     text = file2text(fname)
-    return seg.text2sents(text)
+    return segment_text(text)

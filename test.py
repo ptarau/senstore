@@ -28,7 +28,7 @@ def test_segmenter_():
     print(
         seg.text2sents(
             """
-            Who cares? 
+            Who cares about pi being exactly 3.14 something or not? 
 
             I do!
 
@@ -75,6 +75,29 @@ def test_embedder():
         print(answer)
 
 
+def test_folder():
+    se = SentEmbedder("test_embedder_folder", caching=True)
+    se.digest_folder("test_in/")  # replace with your own folder with .txt files
+    q = "What are the advantages of graph based NLP?"
+    answers = se.query(q, top_k=3)
+    print("\nanswers for query:", q)
+    print(answers)
+    assert se.sents is not None
+    for answer in answers:
+        print(answer)
+    se.save()
+
+    se2 = SentEmbedder("test_embedder_folder")
+    se2.load()
+
+    q = "what are first class logic engines in BinProlog?"
+    answers = se2.query(q, top_k=3)
+    print("\nanswers for query:", q)
+    for answer in answers:
+        print(answer)
+
+
 if __name__ == "__main__":
     test_segmenter_()
     test_embedder()
+    test_folder()

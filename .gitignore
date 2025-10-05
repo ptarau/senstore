@@ -1,6 +1,7 @@
 cache
 venv
 dist
+test_in
 *.egg-info
 __pycache__
 .DS_Store
