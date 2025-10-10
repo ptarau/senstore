@@ -3,7 +3,7 @@ import os
 import pysbd
 
 
-def sent_cleaner(sents, minlen=16):
+def sent_cleaner(sents, minlen=16, min_tokens=3):
     cleans = []
     good = "'~:;=/*()[]{},.?!-+" + '"'
     keep = "$%"
@@ -12,20 +12,23 @@ def sent_cleaner(sents, minlen=16):
         s = s.strip()
         if len(s) < minlen:
             continue
-        cap = int(is_capitalized(s))
+
+        cap = int(is_capitalized(s))  # 1 if capitalized else 0
+
         for g in good:
             s = s.replace(g, " ")
         for g in keep:
-            s = s.replace(g, " " + g + " ")
-        xs = s.split()
-        raw = len(xs)
+            s = s.replace(g, f" {g} ")
 
+        xs = s.split()
+        raw = len(xs) or 1  # avoid div-by-zero
         xs = [x.strip() for x in xs if x.isalnum() or x in keep]
         cleaned = len(xs)
 
-        if cleaned > 5 - cap and cleaned / raw > 0.8 - cap / 10:  # and len(xs[-1]) > 3:
-            clean = " ".join(xs)
-            cleans.append(clean + ".")
+        # accept shorter sentences; inclusive comparisons
+        if cleaned >= max(1, min_tokens - cap) and cleaned / raw >= 0.8 - cap / 10:
+            cleans.append(" ".join(xs) + ".")
+
     if not cleans:
         print("*** NO CLEAN SENT FOUND IN:", sents)
     return cleans
@@ -103,3 +106,24 @@ def segment_text(text: str) -> list[str]:
 def segment_file(fname: str) -> list[str]:
     text = file2text(fname)
     return segment_text(text)
+
+
+def test_cleaner():
+    sents = [
+        "Forcing impacts preservation.",
+        "Extraction reduces complexity.",
+        "Simplification occurs during conversion.",
+        "Granularity loses nuance.",
+        "Information encodes relationships.",
+        "Facts represent discrete units.",
+        "LLM output contains context.",
+        "Context dissolves in facts.",
+        "Transformation introduces distortion.",
+        "Reduction affects richness.",
+    ]
+    cleans = sent_cleaner(sents)
+    print("CLEANS:", cleans)
+
+
+if __name__ == "__main__":
+    test_cleaner()
