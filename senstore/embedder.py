@@ -131,7 +131,7 @@ class SentEmbedder:
         """Store embeddings in the vector store."""
         assert self.vecstore is None, "Vector store is already initialized."
         self.vecstore = VecStore(self.vecstore_name, dim=dim)
-        print(f"Vecstore created")
+        # print(f"Vecstore created")
         self.vecstore.add(embeddings)
 
     def get_vecs(self) -> np.ndarray:
@@ -174,7 +174,7 @@ class SentEmbedder:
 
     def embed_query(self, query: str) -> np.ndarray:
         """Embed a query string."""
-        print(f"Embedding query: {query}")
+        # print(f"Embedding query: {query}")
         embs, _dim = self.get_embeddings([query])
         assert embs is not None
         return np.array(embs)
